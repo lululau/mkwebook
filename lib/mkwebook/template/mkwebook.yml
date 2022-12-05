@@ -1,0 +1,19 @@
+browser:
+  headless: false
+  conccurency: 16
+
+
+index-page:
+  url: 
+  extractors:
+    - url-pattern:
+      code:
+
+
+page-extractors:
+  - url-pattern:
+    code:
+    assets:
+      - css-selector:
+        download-attr:
+            

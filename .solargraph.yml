@@ -1,0 +1,11 @@
+require:
+- actioncable
+- actionmailer
+- actionpack
+- actionview
+- activejob
+- activemodel
+- activerecord
+- activestorage
+- activesupport
+- caxlsx
