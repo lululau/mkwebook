@@ -1,5 +1,1 @@
-require 'mkwebook/ext/object'
-require 'mkwebook/ext/array'
-require 'mkwebook/ext/time'
 require 'mkwebook/ext/string'
-require 'mkwebook/ext/kernel'

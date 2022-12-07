@@ -1,0 +1,19 @@
+browser:
+  headless: false
+
+conccurency: 1
+
+
+index-page:
+  url: https://clojure.org/guides/repl/introduction
+  extractor:
+    code: ./index_extract.js
+
+
+page-extractors:
+  - url-pattern:
+    code:
+    assets:
+      - css-selector:
+        download-attr:
+            

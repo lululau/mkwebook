@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby
 
-MkwebookSetsidWrrapper = File.dirname(File.absolute_path(__FILE__)) + '/mkwebook_setsid_wrapper'
-
 require "mkwebook"
 
 Mkwebook::Cli.start

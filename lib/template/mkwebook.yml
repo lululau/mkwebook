@@ -1,13 +1,12 @@
 browser:
   headless: false
-  conccurency: 16
 
+conccurency: 16
 
 index-page:
-  url: 
-  extractors:
-    - url-pattern:
-      code:
+  url: https://clojure.org/guides/repl/introduction
+  extractor:
+    code: ./index_extract.js
 
 
 page-extractors:

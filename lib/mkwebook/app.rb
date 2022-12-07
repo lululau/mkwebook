@@ -1,151 +1,111 @@
+require 'fileutils'
+require 'Mkwebook/config'
+require 'ferrum'
+
 module Mkwebook
   class App
 
-    class << self
-      attr_accessor :log_io, :env, :prompt, :instance, :connect_options
+    attr_accessor :config, :browser, :browser_context, :cli_options
 
-      def config
-        @@effective_config
+    def initialize(cli_options)
+      if cli_options[:work_dir]
+        unless File.directory?(cli_options[:work_dir])
+          FileUtils.mkdir_p(cli_options[:work_dir])
+        end
+        Dir.chdir(cli_options[:work_dir])
+      end
+      @cli_options = cli_options
+      @config = Mkwebook::Config.new
+    end
+
+    def create_config
+      FileUtils.cp(template_config_file, 'mkwebook.yml', verbose: true)
+    end
+
+    def template_config_file
+      File.join(Mkwebook::GEM_ROOT, 'template', 'mkwebook.yml')
+    end
+
+    def make
+      prepare_browser
+      make_index
+      make_pages
+    end
+
+    def prepare_browser
+      @browser = Ferrum::Browser.new(browser_options)
+      @browser_context = browser.contexts.create
+    end
+
+    def make_index
+      index_page = @browser_context.create_page
+      index_page.go_to(@config[:index_page][:url])
+      modifier = @config[:index_page][:modifier]
+      if File.file?(modifier)
+        index_page.evaluate(File.read(modifier))
+      else
+        index_page.evaluate(modifier) if modifier.present?
+      end
+      index_elements = index_page.css(@config[:index_page][:selector])
+      index_elements.map do |element|
+        element.evaluate('this.outerHTML')
+      end.join("\n").tap do |html|
+        File.write(@config[:index_page][:output], html)
       end
 
-      def prompt
-        if env
-          env
+      @page_urls = index_elements.flat_map do |element|
+        element.css(@config[:index_page][:link_selector]).map { |a| a.evaluate('this.href') }
+      end
+    end
+
+    def make_pages
+      @page_urls.each do |url|
+        page_config = @config[:pages].find { |page| url =~ Regexp.new(page[:url_pattern]) }
+        next unless page_config
+        output = File.basename(url)
+        page = @browser_context.create_page
+        page.go_to(url)
+        modifier = page_config[:modifier]
+        if File.file?(modifier)
+          page.evaluate(File.read(modifier))
         else
-          File.basename(@@effective_config[:database])
+          page.evaluate(modifier) if modifier.present?
+        end
+        page_elements = page.css(page_config[:selector])
+
+        download_assets(page, page_config)
+
+        page_elements.map do |element|
+          element.evaluate('this.outerHTML')
+        end.join("\n").tap do |html|
+          File.write(output, html)
+        end
+
+      end
+    end
+
+    def download_assets(page, page_config)
+      page_config[:assets].each do |asset_config|
+        asset_attr = asset_config[:attr]
+        asset_selector = asset_config[:selector]
+        asset_dir = './assets'
+        FileUtils.mkdir_p(asset_dir)
+        page.css(asset_selector).each do |element|
+          asset_url = element.evaluate("this.#{asset_attr}")
+          asset_ext_name = File.extname(asset_url)
+          asset_file = "#{asset_dir}/#{Digest::MD5.hexdigest(asset_url) + asset_ext_name}"
+          page.network.traffic.find { |t| t.url == asset_url }.try do |traffic|
+            File.write(asset_file, traffic.response.body)
+          end
+          element.evaluate("this.#{asset_attr} = '#{asset_file}'")
         end
       end
     end
 
-    def initialize(options)
-      require "mkwebook/connection"
-      require "mkwebook/definition"
-      @options = options
-      App.env = @options.env
-      App.connect_options = connect_options
-      Connection.open(App.connect_options)
-      print "Defining models..."
-      @definition = Definition.new(effective_config)
-      print "\u001b[2K"
-      puts "\rModels defined"
-      print "Running initializers..."
-      load_initializer!
-      print "\u001b[2K"
-      puts "\rInitializers loaded"
-      App.instance = self
-    end
+    private
 
-    def connect_options
-      connect_conf = effective_config.slice(:adapter, :host, :username,
-                             :password, :database, :encoding,
-                             :pool, :port, :socket)
-      if effective_config[:ssh].present?
-        connect_conf.merge!(start_ssh_proxy!)
-      end
-
-      connect_conf
-    end
-
-    def load_initializer!
-      return unless effective_config[:initializer]
-      initializer_file = File.expand_path(effective_config[:initializer])
-      unless File.exists?(initializer_file)
-        STDERR.puts "Specified initializer file not found, #{effective_config[:initializer]}"
-        exit(1)
-      end
-      load(initializer_file)
-    end
-
-    def start_ssh_proxy!
-      ssh_config = effective_config[:ssh]
-      local_ssh_proxy_port = Mkwebook::SSHProxy.connect(ssh_config.slice(:host, :user, :port, :password).merge(
-                                                                                                           forward_host: effective_config[:host],
-                                                                                                           forward_port: effective_config[:port],
-                                                                                                           local_port: ssh_config[:local_port]))
-      {
-        host: '127.0.0.1',
-        port: local_ssh_proxy_port
-      }
-    end
-
-    def config
-      @config ||= YAML.load(IO.read(File.expand_path(@options.config_file)), aliases: true).with_indifferent_access
-    rescue ArgumentError
-      @config ||= YAML.load(IO.read(File.expand_path(@options.config_file))).with_indifferent_access
-    end
-
-    def selected_config
-      if @options.env.present? && !config[@options.env].present?
-        STDERR.puts "Specified ENV `#{@options.env}' not exists"
-      end
-      if env = @options.env
-        config[env]
-      else
-        {}
-      end
-    end
-
-    def effective_config
-      @@effective_config ||= nil
-      unless @@effective_config
-        @@effective_config = selected_config.deep_merge(@options.to_h)
-        if @@effective_config[:adapter].blank?
-          @@effective_config[:adapter] = 'sqlite3'
-        end
-        @@effective_config[:database] = File.expand_path(@@effective_config[:database]) if @@effective_config[:adapter] == 'sqlite3'
-      end
-      @@effective_config
-    end
-
-    def run!
-      show_sql if should_show_sql?
-      write_sql if should_write_sql?
-      append_sql if should_append_sql?
-      if effective_config[:code].present?
-        eval(effective_config[:code])
-      elsif effective_config[:args].present?
-        effective_config[:args].first.tap { |file| load(file) }
-      elsif STDIN.isatty
-        run_repl!
-      else
-        eval(STDIN.read)
-      end
-    end
-
-    def run_repl!
-      Repl.new
-    end
-
-    def should_show_sql?
-      effective_config[:show_sql]
-    end
-
-    def should_write_sql?
-      effective_config[:write_sql]
-    end
-
-    def should_append_sql?
-      effective_config[:append_sql]
-    end
-
-    def show_sql
-      App.log_io ||= MultiIO.new
-      ActiveRecord::Base.logger = Logger.new(App.log_io)
-      App.log_io << STDOUT
-    end
-
-    def write_sql
-      write_sql_file = effective_config[:write_sql]
-      App.log_io ||= MultiIO.new
-      ActiveRecord::Base.logger = Logger.new(App.log_io)
-      App.log_io << File.new(write_sql_file, 'w')
-    end
-
-    def append_sql
-      write_sql_file = effective_config[:append_sql]
-      App.log_io ||= MultiIO.new
-      ActiveRecord::Base.logger = Logger.new(App.log_io)
-      App.log_io << File.new(write_sql_file, 'a')
+    def browser_options
+      @config[:browser]
     end
   end
 end
