@@ -41,20 +41,27 @@ module Mkwebook
       index_page = @browser_context.create_page
       index_page.go_to(@config[:index_page][:url])
       modifier = @config[:index_page][:modifier]
-      if File.file?(modifier)
-        index_page.evaluate(File.read(modifier))
+      if modifier && File.file?(modifier)
+        index_page.execute(File.read(modifier))
       else
-        index_page.evaluate(modifier) if modifier.present?
+        index_page.execute(modifier) if modifier.present?
       end
       index_elements = index_page.css(@config[:index_page][:selector])
+
+      @page_urls = index_elements.flat_map do |element|
+        url = element.css(@config[:index_page][:link_selector]).map { |a| a.evaluate('this.href') }
+        element.css(@config[:index_page][:link_selector]).each do |a|
+          a.evaluate("this.href = '#{Digest::MD5.hexdigest(a.evaluate('this.href'))}.html'")
+        end
+        url
+      end
+
+      download_assets(index_page, @config[:index_page][:assets] || [])
+
       index_elements.map do |element|
         element.evaluate('this.outerHTML')
       end.join("\n").tap do |html|
         File.write(@config[:index_page][:output], html)
-      end
-
-      @page_urls = index_elements.flat_map do |element|
-        element.css(@config[:index_page][:link_selector]).map { |a| a.evaluate('this.href') }
       end
     end
 
@@ -62,18 +69,18 @@ module Mkwebook
       @page_urls.each do |url|
         page_config = @config[:pages].find { |page| url =~ Regexp.new(page[:url_pattern]) }
         next unless page_config
-        output = File.basename(url)
+        output = Digest::MD5.hexdigest(url) + '.html'
         page = @browser_context.create_page
         page.go_to(url)
         modifier = page_config[:modifier]
-        if File.file?(modifier)
-          page.evaluate(File.read(modifier))
+        if modifier && File.file?(modifier)
+          page.execute(File.read(modifier))
         else
-          page.evaluate(modifier) if modifier.present?
+          page.execute(modifier) if modifier.present?
         end
         page_elements = page.css(page_config[:selector])
 
-        download_assets(page, page_config)
+        download_assets(page, page_config[:assets] || [])
 
         page_elements.map do |element|
           element.evaluate('this.outerHTML')
@@ -84,8 +91,8 @@ module Mkwebook
       end
     end
 
-    def download_assets(page, page_config)
-      page_config[:assets].each do |asset_config|
+    def download_assets(page, assets_config)
+      assets_config.each do |asset_config|
         asset_attr = asset_config[:attr]
         asset_selector = asset_config[:selector]
         asset_dir = './assets'
