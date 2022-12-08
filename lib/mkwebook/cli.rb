@@ -15,6 +15,11 @@ module Mkwebook
       Mkwebook::App.new(options).create_config
     end
 
+    desc 'make_index', 'Download and process index page'
+    def make_index
+      Mkwebook::App.new(options).make_index
+    end
+
     option :limit, :type => :numeric, :aliases => '-l', :desc => 'Limit number of pages, specially for debugging'
     desc 'make', 'Download and process html files'
     def make

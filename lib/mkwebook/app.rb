@@ -24,7 +24,6 @@ module Mkwebook
     end
 
     def make
-      prepare_browser
       make_index
       make_pages
     end
@@ -35,6 +34,7 @@ module Mkwebook
     end
 
     def make_index
+      prepare_browser
       index_page = @browser_context.create_page
       index_page.go_to(@config[:index_page][:url])
       modifier = @config[:index_page][:modifier]
