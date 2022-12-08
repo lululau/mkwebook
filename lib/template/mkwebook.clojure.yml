@@ -1,0 +1,42 @@
+browser:
+  headless: false
+  window_size: [1440, 1024]
+  timeout: 30
+
+conccurency: 16
+
+index-page:
+  url: https://clojure.org/guides/repl/introduction
+  modifier: |
+    document.body.innerHTML = document.querySelector('.clj-section-nav-container').outerHTML;
+    document.querySelector('.clj-section-nav-container').style.width = '100%';
+    document.body.style.backgroundColor = 'white';
+
+  selector: "html"
+  output: "index.html"
+  link-selector: "a:not([href='../guides'])"
+  assets:
+    - selector: "link[rel=stylesheet]"
+      attr: href
+    - selector: "script[src]"
+      attr: src
+
+
+pages:
+  - url-pattern: '.*'
+    modifier: |
+      document.body.innerHTML = document.querySelector('.clj-content-container').outerHTML;
+      document.querySelector('.clj-content-container').style.width = '100%';
+      document.body.style.backgroundColor = 'white';
+      var style = document.createElement('style');
+      style.innerHTML = '.clj-content-container { margin-left: 0; }';
+      document.body.appendChild(style);
+    selector: html
+    assets:
+      - selector: img
+        attr: src
+      - selector: "link[rel=stylesheet]"
+        attr: href
+      - selector: "script[src]"
+        attr: src
+            

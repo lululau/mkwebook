@@ -1,0 +1,78 @@
+browser:
+  headless: false
+  window_size: [1440, 1024]
+  timeout: 30
+
+conccurency: 16
+
+index-page:
+  url: https://python-poetry.org/docs
+  title: Poetry Documentation
+  modifier: |
+    document.querySelector('button[data-controller="mode-switch"]').click();
+    document.querySelector('#TableOfContents').remove();
+    document.body.innerHTML = document.querySelector('#documentation-menu').outerHTML;
+    document.querySelector('#documentation-menu').style.width = '100%';
+
+  selector: "html"
+  output: "index.html"
+  link-selector: a
+  assets:
+    - selector: "link[rel=stylesheet]"
+      attr: href
+    - selector: "script[src]"
+      attr: src
+
+
+pages:
+  - url-pattern: '.*'
+    modifier: |
+      for (var e of document.querySelectorAll('#content > div > div > div')) {
+        e.remove();
+      }
+      document.querySelector('#content > div').classList.remove('max-w-7xl');
+      document.querySelector('#content > div').classList.remove('mt-48');
+      document.querySelector('#content > div').classList.remove('md:mt-64');
+      document.querySelector('[data-controller="menu"]').remove();
+      document.querySelector('footer').remove();
+      var style = document.createElement('style');
+      style.innerHTML = `
+          #content main .highlight { width:100%;}
+          #content main .admonition {margin-left: 80px; width: 100%;}
+          .highlight pre {
+              --tw-bg-opacity: 1;
+              background-color: rgb(255 255 255/ var(--tw-bg-opacity));
+              border-radius: .5rem;
+              font-family: Jetbrains Mono,ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
+              line-height: 1.5rem;
+              overflow: auto;
+              padding: 1.75rem 2rem
+          }
+          .browser-window.dark .highlight pre code,.highlight pre code {
+              --tw-text-opacity: 1!important;
+              background-color: transparent!important;
+              color: rgb(0 0 0/var(--tw-text-opacity))!important;
+          }
+      `;
+
+
+      document.body.appendChild(style);
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.innerHTML = `
+      document.addEventListener('DOMContentLoaded', function() {
+          document.querySelector('html').removeAttribute('class');
+          document.querySelector('html').setAttribute('class', 'light');
+      });
+      `
+      document.body.appendChild(script);
+
+    selector: html
+    assets:
+      - selector: img
+        attr: src
+      - selector: "link[rel=stylesheet]"
+        attr: href
+      - selector: "script[src]"
+        attr: src
+            
