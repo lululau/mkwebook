@@ -4,14 +4,11 @@ require 'ferrum'
 
 module Mkwebook
   class App
-
     attr_accessor :config, :browser, :browser_context, :cli_options
 
     def initialize(cli_options)
       if cli_options[:work_dir]
-        unless File.directory?(cli_options[:work_dir])
-          FileUtils.mkdir_p(cli_options[:work_dir])
-        end
+        FileUtils.mkdir_p(cli_options[:work_dir]) unless File.directory?(cli_options[:work_dir])
         Dir.chdir(cli_options[:work_dir])
       end
       @cli_options = cli_options
@@ -43,8 +40,8 @@ module Mkwebook
       modifier = @config[:index_page][:modifier]
       if modifier && File.file?(modifier)
         index_page.execute(File.read(modifier))
-      else
-        index_page.execute(modifier) if modifier.present?
+      elsif modifier.present?
+        index_page.execute(modifier)
       end
       index_elements = index_page.css(@config[:index_page][:selector])
 
@@ -76,14 +73,15 @@ module Mkwebook
       @page_urls.each do |url|
         page_config = @config[:pages].find { |page| url =~ Regexp.new(page[:url_pattern]) }
         next unless page_config
+
         output = url.normalize_file_path('.html')
         page = @browser_context.create_page
         page.go_to(url)
         modifier = page_config[:modifier]
         if modifier && File.file?(modifier)
           page.execute(File.read(modifier))
-        else
-          page.execute(modifier) if modifier.present?
+        elsif modifier.present?
+          page.execute(modifier)
         end
         page_elements = page.css(page_config[:selector])
 
@@ -93,6 +91,7 @@ module Mkwebook
           element.css('a').each do |a|
             u = a.evaluate('this.href')
             next unless @page_urls.include?(u)
+
             u = u.normalize_uri('.html').relative_path_from(url.normalize_uri('.html'))
             a.evaluate("this.href = '#{u}'")
           end
@@ -100,7 +99,6 @@ module Mkwebook
         end.join("\n").tap do |html|
           File.write(output, html)
         end
-
       end
     end
 
