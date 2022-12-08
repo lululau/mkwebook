@@ -51,7 +51,8 @@ module Mkwebook
       @page_urls = index_elements.flat_map do |element|
         url = element.css(@config[:index_page][:link_selector]).map { |a| a.evaluate('this.href') }
         element.css(@config[:index_page][:link_selector]).each do |a|
-          a.evaluate("this.href = '#{Digest::MD5.hexdigest(a.evaluate('this.href'))}.html'")
+          u = a.evaluate('this.href').normalize_uri('.html').relative_path_from(@config[:index_page][:output])
+          a.evaluate("this.href = '#{u}'")
         end
         url
       end.uniq
@@ -62,7 +63,7 @@ module Mkwebook
 
       @page_urls = @page_urls[0, @cli_options[:limit]] if @cli_options[:limit]
 
-      download_assets(index_page, @config[:index_page][:assets] || [])
+      download_assets(index_page, @config[:index_page][:assets] || [], @config[:index_page][:output])
 
       index_elements.map do |element|
         element.evaluate('this.outerHTML')
@@ -75,7 +76,7 @@ module Mkwebook
       @page_urls.each do |url|
         page_config = @config[:pages].find { |page| url =~ Regexp.new(page[:url_pattern]) }
         next unless page_config
-        output = Digest::MD5.hexdigest(url) + '.html'
+        output = url.normalize_file_path('.html')
         page = @browser_context.create_page
         page.go_to(url)
         modifier = page_config[:modifier]
@@ -89,6 +90,12 @@ module Mkwebook
         download_assets(page, page_config[:assets] || [])
 
         page_elements.map do |element|
+          element.css('a').each do |a|
+            u = a.evaluate('this.href')
+            next unless @page_urls.include?(u)
+            u = u.normalize_uri('.html').relative_path_from(url.normalize_uri('.html'))
+            a.evaluate("this.href = '#{u}'")
+          end
           element.evaluate('this.outerHTML')
         end.join("\n").tap do |html|
           File.write(output, html)
@@ -97,20 +104,19 @@ module Mkwebook
       end
     end
 
-    def download_assets(page, assets_config)
+    def download_assets(page, assets_config, page_uri = nil)
       assets_config.each do |asset_config|
         asset_attr = asset_config[:attr]
         asset_selector = asset_config[:selector]
-        asset_dir = './assets'
-        FileUtils.mkdir_p(asset_dir)
         page.css(asset_selector).each do |element|
           asset_url = element.evaluate("this.#{asset_attr}")
-          asset_ext_name = File.extname(asset_url)
-          asset_file = "#{asset_dir}/#{Digest::MD5.hexdigest(asset_url) + asset_ext_name}"
+          asset_file = asset_url.normalize_file_path
+          FileUtils.mkdir_p(File.dirname(asset_file))
           page.network.traffic.find { |t| t.url == asset_url }.try do |traffic|
             File.write(asset_file, traffic.response.body)
           end
-          element.evaluate("this.#{asset_attr} = '#{asset_file}'")
+          u = asset_url.normalize_uri.relative_path_from((page_uri || page.url.normalize_uri))
+          element.evaluate("this.#{asset_attr} = '#{u}'")
         end
       end
     end
