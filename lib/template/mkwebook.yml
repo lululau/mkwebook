@@ -7,6 +7,7 @@ conccurency: 16
 
 index-page:
   url: https://clojure.org/guides/repl/introduction
+  title: Clojure Guides
   modifier: |
     document.body.innerHTML = document.querySelector('.clj-section-nav-container').outerHTML;
     document.querySelector('.clj-section-nav-container').style.width = '100%';

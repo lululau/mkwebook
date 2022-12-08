@@ -62,6 +62,10 @@ module Mkwebook
 
       download_assets(index_page, @config[:index_page][:assets] || [], @config[:index_page][:output])
 
+      @config[:index_page][:title].try do |title|
+        index_page.execute("document.title = '#{title}'")
+      end
+
       index_page.execute <<-JS
         for (var e of document.querySelectorAll('[integrity]')) {
           e.removeAttribute('integrity');
@@ -94,10 +98,14 @@ module Mkwebook
         download_assets(page, page_config[:assets] || [])
 
 
+        @config[:index_page][:title].try do |title|
+          page.execute("document.title = '#{title}'")
+        end
+
         page.execute <<-JS
           for (var e of document.querySelectorAll('[integrity]')) {
               e.removeAttribute('integrity');
-            }
+          }
         JS
 
         page_elements.map do |element|
