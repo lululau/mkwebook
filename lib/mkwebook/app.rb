@@ -110,6 +110,7 @@ module Mkwebook
           end
           element.evaluate('this.outerHTML')
         end.join("\n").tap do |html|
+          FileUtils.mkdir_p(File.dirname(output))
           File.write(output, html)
         end
       end
@@ -121,6 +122,7 @@ module Mkwebook
         asset_selector = asset_config[:selector]
         page.css(asset_selector).each do |element|
           asset_url = element.evaluate("this.#{asset_attr}")
+          next if asset_url.start_with?('data:')
           asset_file = asset_url.normalize_file_path
           FileUtils.mkdir_p(File.dirname(asset_file))
           page.network.traffic.find { |t| t.url == asset_url }.try do |traffic|
