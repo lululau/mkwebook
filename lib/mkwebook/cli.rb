@@ -9,7 +9,7 @@ module Mkwebook
     end
 
     class_option :work_dir, :type => :string, :aliases => '-d', :default => '.', :desc => 'Working directory'
-
+    class_option :pause_on_error, :type => :boolean, :aliases => '-e', :default => false, :desc => 'Pause on error'
     desc 'init', 'Create config file in current directory'
     def init
       Mkwebook::App.new(options).create_config

@@ -81,7 +81,8 @@ module Mkwebook
       end.join("\n").tap do |html|
         File.write(@config[:index_page][:output], html)
       end
-
+    rescue Ferrum::Error => e
+      binding.pry
     end
 
     def make_pages
@@ -89,44 +90,50 @@ module Mkwebook
         page_config = @config[:pages].find { |page| url =~ Regexp.new(page[:url_pattern]) }
         next unless page_config
 
-        output = url.normalize_file_path('.html')
-        page = @browser_context.create_page
-        page.go_to(url)
-        page.network.wait_for_idle
-        modifier = page_config[:modifier]
-        if modifier && File.file?(modifier)
-          page.execute(File.read(modifier))
-        elsif modifier.present?
-          page.execute(modifier)
-        end
-        page_elements = page.css(page_config[:selector])
-
-        @config[:index_page][:title].try do |title|
-          page.execute("document.title = '#{title}'")
-        end
-
-        page.execute <<-JS
-          for (var e of document.querySelectorAll('[integrity]')) {
-              e.removeAttribute('integrity');
-          }
-        JS
-
-
-        binding.pry if @cli_options[:pause]
-        download_assets(page, page_config[:assets] || [])
-
-        page_elements.map do |element|
-          element.css('a').each do |a|
-            u = a.evaluate('this.href')
-            next unless @page_urls.include?(u)
-
-            u = u.normalize_uri('.html').relative_path_from(url.normalize_uri('.html'))
-            a.evaluate("this.href = '#{u}'")
+        begin
+          output = url.normalize_file_path('.html')
+          page = @browser_context.create_page
+          page.go_to(url)
+          page.network.wait_for_idle
+          modifier = page_config[:modifier]
+          if modifier && File.file?(modifier)
+            page.execute(File.read(modifier))
+          elsif modifier.present?
+            page.execute(modifier)
           end
-          element.evaluate('this.outerHTML')
-        end.join("\n").tap do |html|
-          FileUtils.mkdir_p(File.dirname(output))
-          File.write(output, html)
+          page_elements = page.css(page_config[:selector])
+
+          @config[:index_page][:title].try do |title|
+            page.execute("document.title = '#{title}'")
+          end
+
+          page.execute <<-JS
+            for (var e of document.querySelectorAll('[integrity]')) {
+                e.removeAttribute('integrity');
+            }
+          JS
+
+
+          binding.pry if @cli_options[:pause]
+          download_assets(page, page_config[:assets] || [])
+
+          page_elements.map do |element|
+            element.css('a').each do |a|
+              u = a.evaluate('this.href')
+              next unless @page_urls.include?(u)
+
+              u = u.normalize_uri('.html').relative_path_from(url.normalize_uri('.html'))
+              a.evaluate("this.href = '#{u}'")
+            end
+            element.evaluate('this.outerHTML')
+          end.join("\n").tap do |html|
+            FileUtils.mkdir_p(File.dirname(output))
+            File.write(output, html)
+          end
+        rescue Ferrum::Error => e
+          $stderr.puts e.message
+          $stderr.puts e.backtrace
+          binding.pry if @cli_options[:pause_on_error]
         end
       end
 
