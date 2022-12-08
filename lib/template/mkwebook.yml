@@ -1,41 +1,42 @@
-browser:
-  headless: false
-  window_size: [1440, 1024]
-  timeout: 30
+browser:  # browser settings
+  headless: false  # headless mode
+  window_size: [1440, 1024] # browser window size
+  timeout: 30 # timeout for waiting for page loading
+  # Any other options accpeted by Ferum::Browser.new are allowed here
 
-conccurency: 16
+conccurency: 16  # number of concurrent threads, default is count of CPU cores
 
-index-page:
-  url: https://clojure.org/guides/repl/introduction
-  title: Clojure Guides
-  modifier: |
+index-page:  # index page settings
+  url: https://clojure.org/guides/repl/introduction  # URL of index page
+  title: Clojure Guides  # title for the book, use page's title if not set
+  modifier: |  # JavaScript code to modify the page
     document.body.innerHTML = document.querySelector('.clj-section-nav-container').outerHTML;
     document.querySelector('.clj-section-nav-container').style.width = '100%';
     document.body.style.backgroundColor = 'white';
 
-  selector: "html"
-  output: "index.html"
-  link-selector: "a:not([href='../guides'])"
-  assets:
-    - selector: "link[rel=stylesheet]"
-      attr: href
+  selector: "html"  # CSS selector for the content to be saved
+  output: "index.html" # output file name
+  link-selector: "a:not([href='../guides'])"  # CSS selector for links of content pages
+  assets:  # assets to be downloaded
+    - selector: "link[rel=stylesheet]" # CSS selector for assets
+      attr: href  # attribute name for the asset URL
     - selector: "script[src]"
       attr: src
 
 
-pages:
-  - url-pattern: '.*'
-    modifier: |
+pages:  # settings for content pages
+  - url-pattern: '.*'  # URL pattern for content page, only pages' URL matching this pattern will be processed
+    modifier: |  # JavaScript code to modify the page
       document.body.innerHTML = document.querySelector('.clj-content-container').outerHTML;
       document.querySelector('.clj-content-container').style.width = '100%';
       document.body.style.backgroundColor = 'white';
       var style = document.createElement('style');
       style.innerHTML = '.clj-content-container { margin-left: 0; }';
       document.body.appendChild(style);
-    selector: html
-    assets:
-      - selector: img
-        attr: src
+    selector: html   # CSS selector for the content to be saved
+    assets:  # assets to be downloaded
+      - selector: img  # CSS selector for assets
+        attr: src  # attribute name for the asset URL
       - selector: "link[rel=stylesheet]"
         attr: href
       - selector: "script[src]"
