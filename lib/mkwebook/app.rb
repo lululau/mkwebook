@@ -134,7 +134,9 @@ module Mkwebook
           asset_file = asset_url.normalize_file_path
           FileUtils.mkdir_p(File.dirname(asset_file))
           page.network.traffic.find { |t| t.url == asset_url }.try do |traffic|
-            File.write(asset_file, traffic.response.body)
+            traffic&.response&.body.try do |body|
+              File.write(asset_file, body)
+            end
           end
           u = asset_url.normalize_uri.relative_path_from((page_uri || page.url.normalize_uri))
           element.evaluate("this.#{asset_attr} = '#{u}'")
