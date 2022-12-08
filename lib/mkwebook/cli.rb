@@ -15,6 +15,7 @@ module Mkwebook
       Mkwebook::App.new(options).create_config
     end
 
+    option :limit, :type => :numeric, :aliases => '-l', :desc => 'Limit number of pages, specially for debugging'
     desc 'make', 'Download and process html files'
     def make
       Mkwebook::App.new(options).make

@@ -54,7 +54,13 @@ module Mkwebook
           a.evaluate("this.href = '#{Digest::MD5.hexdigest(a.evaluate('this.href'))}.html'")
         end
         url
+      end.uniq
+
+      @page_urls.select! do |url|
+        @config[:pages].any? { |page| url =~ Regexp.new(page[:url_pattern]) }
       end
+
+      @page_urls = @page_urls[0, @cli_options[:limit]] if @cli_options[:limit]
 
       download_assets(index_page, @config[:index_page][:assets] || [])
 
