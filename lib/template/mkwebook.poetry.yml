@@ -35,6 +35,8 @@ pages:
       document.querySelector('#content > div').classList.remove('md:mt-64');
       document.querySelector('[data-controller="menu"]').remove();
       document.querySelector('footer').remove();
+      document.querySelector('#docs').classList.remove('lg:px-12');
+      for (var e of document.querySelectorAll('.clipboard-button')) {e.remove();}
       var style = document.createElement('style');
       style.innerHTML = `
           #content main .highlight { width:100%;}
@@ -53,8 +55,27 @@ pages:
               background-color: transparent!important;
               color: rgb(0 0 0/var(--tw-text-opacity))!important;
           }
+          body {
+              color: black!important;
+          }
+          #content main .admonition .content p>code, #content main .admonition .content>code, #content main li>code, #content main p>a>code, #content main p>code, #content main table:not(.lntable) td code {
+              color: #000!important;
+          }
+
+          #content main .admonition.note:before {
+              content: "";
+          }
+
+          #content main .admonition {
+            margin-left: auto;
+            width: 100%;
+          }
+
       `;
 
+      for (var e of document.querySelectorAll('pre > code > span')) {
+        e.style.color = 'black';
+      }
 
       document.body.appendChild(style);
       var script = document.createElement('script');
