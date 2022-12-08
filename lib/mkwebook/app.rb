@@ -1,6 +1,7 @@
 require 'fileutils'
 require 'Mkwebook/config'
 require 'ferrum'
+require 'pry-byebug'
 
 module Mkwebook
   class App
@@ -37,6 +38,7 @@ module Mkwebook
       prepare_browser
       index_page = @browser_context.create_page
       index_page.go_to(@config[:index_page][:url])
+      index_page.network.wait_for_idle
       modifier = @config[:index_page][:modifier]
       if modifier && File.file?(modifier)
         index_page.execute(File.read(modifier))
@@ -60,7 +62,6 @@ module Mkwebook
 
       @page_urls = @page_urls[0, @cli_options[:limit]] if @cli_options[:limit]
 
-      download_assets(index_page, @config[:index_page][:assets] || [], @config[:index_page][:output])
 
       @config[:index_page][:title].try do |title|
         index_page.execute("document.title = '#{title}'")
@@ -72,11 +73,15 @@ module Mkwebook
         }
       JS
 
+      binding.pry if @cli_options[:pause]
+      download_assets(index_page, @config[:index_page][:assets] || [], @config[:index_page][:output])
+
       index_elements.map do |element|
         element.evaluate('this.outerHTML')
       end.join("\n").tap do |html|
         File.write(@config[:index_page][:output], html)
       end
+
     end
 
     def make_pages
@@ -87,6 +92,7 @@ module Mkwebook
         output = url.normalize_file_path('.html')
         page = @browser_context.create_page
         page.go_to(url)
+        page.network.wait_for_idle
         modifier = page_config[:modifier]
         if modifier && File.file?(modifier)
           page.execute(File.read(modifier))
@@ -94,9 +100,6 @@ module Mkwebook
           page.execute(modifier)
         end
         page_elements = page.css(page_config[:selector])
-
-        download_assets(page, page_config[:assets] || [])
-
 
         @config[:index_page][:title].try do |title|
           page.execute("document.title = '#{title}'")
@@ -107,6 +110,10 @@ module Mkwebook
               e.removeAttribute('integrity');
           }
         JS
+
+
+        binding.pry if @cli_options[:pause]
+        download_assets(page, page_config[:assets] || [])
 
         page_elements.map do |element|
           element.css('a').each do |a|
@@ -122,6 +129,7 @@ module Mkwebook
           File.write(output, html)
         end
       end
+
     end
 
     def download_assets(page, assets_config, page_uri = nil)

@@ -15,12 +15,15 @@ module Mkwebook
       Mkwebook::App.new(options).create_config
     end
 
+    option :pause, :type => :boolean, :aliases => '-p', :desc => 'Pause after processing index page'
     desc 'make_index', 'Download and process index page'
     def make_index
       Mkwebook::App.new(options).make_index
     end
 
     option :limit, :type => :numeric, :aliases => '-l', :desc => 'Limit number of pages, specially for debugging'
+    option :pause, :type => :boolean, :aliases => '-P', :desc => 'Pause before quit'
+    option :pause_on_index, :type => :boolean, :aliases => '-p', :desc => 'Pause after processing index page'
     desc 'make', 'Download and process html files'
     def make
       Mkwebook::App.new(options).make
