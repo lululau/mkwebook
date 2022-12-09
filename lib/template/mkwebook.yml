@@ -2,9 +2,9 @@ browser:  # browser settings
   headless: false  # headless mode
   window_size: [1440, 1024] # browser window size
   timeout: 30 # timeout for waiting for page loading
-  # Any other options accpeted by Ferum::Browser.new are allowed here
+  # Any options accepted by Ferum::Browser.new are allowed here
 
-conccurency: 16  # number of concurrent threads, default is count of CPU cores
+concurrency: 16  # number of concurrent threads, default is no conccurency
 
 index-page:  # index page settings
   url: https://clojure.org/guides/repl/introduction  # URL of index page

@@ -3,7 +3,7 @@ browser:
   window_size: [1440, 1024]
   timeout: 30
 
-conccurency: 16
+concurrency: 16
 
 index-page:
   url: https://python-poetry.org/docs

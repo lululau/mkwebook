@@ -22,6 +22,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'activesupport', '>= 6.1.5'
+  spec.add_dependency 'concurrent-ruby'
   spec.add_dependency 'ferrum', '>= 0.13'
   spec.add_dependency 'thor', '>= 1.2.1'
 
