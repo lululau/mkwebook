@@ -25,9 +25,9 @@ module Mkwebook
       File.join(Mkwebook::GEM_ROOT, 'template', 'mkwebook.yml')
     end
 
-    def make
-      make_index
-      make_pages
+    def down
+      down_index
+      down_pages
     end
 
     def prepare_browser
@@ -50,7 +50,7 @@ module Mkwebook
       end
     end
 
-    def make_index
+    def down_index
       prepare_browser
       index_page = @browser_context.create_page
       index_page.go_to(@config[:index_page][:url])
@@ -101,7 +101,7 @@ module Mkwebook
       binding.pry
     end
 
-    def make_pages
+    def down_pages
 
       append_extra_pages
 
