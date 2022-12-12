@@ -33,6 +33,21 @@ module Mkwebook
     def prepare_browser
       @browser = Ferrum::Browser.new(browser_options)
       @browser_context = browser.contexts.create
+      set_auth_info if @config.authentication?
+    end
+
+    def set_auth_info
+      page = @browser_context.create_page
+      page.go_to(@config[:authentication][:url])
+      if @config[:authentication][:cookies]
+        page.execute("document.cookie = '#{@config[:authentication][:cookies]}'")
+      end
+
+      if @config[:authentication][:local_storage]
+        @config[:authentication][:local_storage].each do |key, value|
+          page.execute("localStorage.setItem('#{key}', '#{value}')")
+        end
+      end
     end
 
     def make_index
