@@ -30,6 +30,17 @@ module Mkwebook
       Mkwebook::App.new(options).down
     end
 
+    option :limit, :type => :numeric, :aliases => '-l', :desc => 'Limit number of pages, specially for debugging'
+    option :list, :type => :boolean, :aliases => '-L', :desc => 'List all available entry types'
+    desc 'docset', 'Create docset'
+    def docset
+      if options[:list]
+        Mkwebook::App.new(options).list_entry_types
+      else
+        Mkwebook::App.new(options).make_docset
+      end
+    end
+
     desc 'version', 'Print version'
     def version
       puts Mkwebook::VERSION
