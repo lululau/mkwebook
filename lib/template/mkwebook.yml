@@ -6,6 +6,13 @@ browser:  # browser settings
 
 concurrency: 16  # number of concurrent threads, default is no conccurency
 
+authentication:  # authentication settings
+  url: https://example.com/login # any page url which for inject cookie and local storage
+  cookies: "auth_cookie_id=demo" # cookie string to be injected
+  local-storage:  # local storage to be injected
+    username: demo  # key and value
+    auth_token: demo  # key and value
+
 index-page:  # index page settings
   url: https://clojure.org/guides/repl/introduction  # URL of index page
   title: Clojure Guides  # title for the book, use page's title if not set
@@ -42,3 +49,29 @@ pages:  # settings for content pages
       - selector: "script[src]"
         attr: src
             
+docset:  # config for generate docset
+  name: "Clojure Guides"  # docset name
+  keyword: "clojure"  # docset keyword
+  icon: "clojure.png"  # docset icon
+  index: "/index.html"  # docset index page
+  pages:  # docset pages config
+  - url-pattern: 'index.html'  # URL pattern for docset page, will match against local downloaded pages
+    extractor: |  # JavaScript code to extract the content for docset page
+      (function() {
+        var links = [...document.querySelectorAll('a.data-url')];
+        return links.map(link => {
+          var name = link.innerText;
+          var tag = link;
+          while (tag.tagName != 'BODY') {
+            tag = tag.parentElement;
+            if (tag.previousElementSibling && tag.previousElementSibling.tagName == 'H1') {
+              name = tag.previousElementSibling.innerText + ' - ' + name;
+            }
+          }
+          return {  # Should return an array of objects with name, path, type attributes
+            path: link.href,  # path of the page, should be relative to DEMO.docset/Contents/Resources/Documents (starts with /)
+            name: name, # name of extracted element
+            type: 'Guide' # type of extracted element
+          };
+        });
+      })();
