@@ -103,6 +103,8 @@ module Mkwebook
 
     def make_pages
 
+      append_extra_pages
+
       pool = Concurrent::FixedThreadPool.new(@config[:concurrency])
 
       @page_urls.each do |url|
@@ -163,6 +165,12 @@ module Mkwebook
 
       pool.shutdown
       pool.wait_for_termination
+    end
+
+    def append_extra_pages
+      @config[:extra_pages]&.each do |url|
+        @page_urls << url
+      end
     end
 
     def download_assets(page, assets_config, page_uri = nil)
