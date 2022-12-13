@@ -17,18 +17,18 @@ module Mkwebook
     end
 
     option :pause, :type => :boolean, :aliases => '-p', :desc => 'Pause after processing index page'
-    desc 'down_index', 'Download and process index page'
-    def down_index
-      Mkwebook::App.new(options).down_index
+    desc 'download_index', 'Download and process index page'
+    def download_index
+      Mkwebook::App.new(options).download_index
     end
 
     option :limit, :type => :numeric, :aliases => '-l', :desc => 'Limit number of pages, specially for debugging'
     option :pause, :type => :boolean, :aliases => '-P', :desc => 'Pause before quit, this option will force concurrency off'
     option :pause_on_index, :type => :boolean, :aliases => '-p', :desc => 'Pause after processing index page'
     option :single_thread, :type => :boolean, :aliases => '-s', :desc => 'Force conccurency off'
-    desc 'down', 'Download and process html files'
-    def down
-      Mkwebook::App.new(options).down
+    desc 'download', 'Download and process html files'
+    def download
+      Mkwebook::App.new(options).download
     end
 
     option :limit, :type => :numeric, :aliases => '-l', :desc => 'Limit number of pages, specially for debugging'
