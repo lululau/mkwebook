@@ -17,7 +17,7 @@ module Mkwebook
       @cli_options = cli_options
       @config = Mkwebook::Config.new(@cli_options)
       @downloaded_depth = 0
-      @downloaded_files = []
+      @downloaded_pages = []
     end
 
     def create_config
@@ -59,7 +59,11 @@ module Mkwebook
     def download_index(only_index = false)
       prepare_browser
       index_page = @browser_context.create_page
+      begin
       index_page.go_to(@config[:index_page][:url])
+      rescue Ferrum::PendingConnectionsError => e
+        index_page.go_to(@config[:index_page][:url])
+      end
       index_page.network.wait_for_idle(timeout: 10) rescue nil
       modifier = @config[:index_page][:modifier]
       if modifier && File.file?(modifier)
@@ -76,10 +80,10 @@ module Mkwebook
           href = u.normalize_uri('.html').relative_path_from(@config[:index_page][:output])
           file = @config[:index_page][:output]
           a.evaluate <<~JS
-            (function() {
-              this.setAttribute('data-mkwebook-href', #{href});
-              this.setAttribute('data-mkwebook-file', #{file});
-            })();
+            (function(that) {
+                that.setAttribute('data-mkwebook-href', '#{href.gsub("'", "\\\\'")}')
+                that.setAttribute('data-mkwebook-file', '#{file.gsub("'", "\\\\'")}')
+            })(this);
           JS
         end
         url
@@ -88,9 +92,6 @@ module Mkwebook
       @page_urls.select! do |url|
         @config[:pages].any? { |page| url =~ Regexp.new(page[:url_pattern]) }
       end
-
-      @page_urls = @page_urls[0, @cli_options[:limit]] if @cli_options[:limit]
-
 
       @config[:index_page][:title].try do |title|
         index_page.execute("document.title = '#{title}'")
@@ -110,7 +111,7 @@ module Mkwebook
       end.join("\n").tap do |html|
         File.write(@config[:index_page][:output], html)
       end
-      @downloaded_files << @config[:index_page][:output]
+      @downloaded_pages << {file: @config[:index_page][:output], url: @config[:index_page][:url]}
       modify_page_links if only_index
     rescue Ferrum::Error => e
       binding.pry
@@ -121,11 +122,14 @@ module Mkwebook
 
       pool = Concurrent::FixedThreadPool.new(@config[:concurrency])
 
+      @page_urls = @page_urls[0, @cli_options[:limit]] if @cli_options[:limit]
+
       @page_links = @page_urls.map { |url| [url, []] }.to_h
 
       @page_urls.each do |url|
         page_config = @config[:pages].find { |page| url =~ Regexp.new(page[:url_pattern]) }
         next unless page_config
+        next if @downloaded_pages.any? { |page| page[:url] == url }
 
         pool.post do
           page = @browser_context.create_page
@@ -164,14 +168,15 @@ module Mkwebook
 
             page_elements.map do |element|
               element.css('a').each do |a|
-                u = a.evaluate('this.href')
+                u = a.evaluate('this.href') rescue nil
+                next unless u.present?
                 href = u.normalize_uri('.html').relative_path_from(url.normalize_uri('.html'))
                 file = u.normalize_file_path('.html')
                 a.evaluate <<~JS
-                  (function() {
-                      this.setAttribute('data-mkwebook-href', #{href});
-                      this.setAttribute('data-mkwebook-file', #{file});
-                  })();
+                  (function(that) {
+                      that.setAttribute('data-mkwebook-href', '#{href.gsub("'", "\\\\'")}')
+                      that.setAttribute('data-mkwebook-file', '#{file.gsub("'", "\\\\'")}')
+                  })(this);
                 JS
               end
               element.evaluate('this.outerHTML')
@@ -180,8 +185,8 @@ module Mkwebook
               File.write(output, html)
             end
 
-            @downloaded_files << output
-          rescue Ferrum::Error => e
+            @downloaded_pages << {file: output, url: url}
+          rescue => e
             $stderr.puts e.message
             $stderr.puts e.backtrace
             binding.pry if @cli_options[:pause_on_error]
@@ -336,17 +341,20 @@ module Mkwebook
 
     def modify_page_links
       pool = Concurrent::FixedThreadPool.new(@config[:concurrency])
-      @downloaded_files.each do |file|
+      downloaded_files = @downloaded_pages.map { |page| page[:file] }
+      downloaded_files.each do |file|
         pool.post do
           begin
             page = @browser_context.create_page
             page.go_to("file://#{File.expand_path(file)}")
             page.css('a').each do |a|
-              href = a.evaluate('this.getAttribute("data-mkwebook-href")')
+              href = a.evaluate('this.getAttribute("data-mkwebook-href")') rescue nil
+              next unless href
               f = a.evaluate('this.getAttribute("data-mkwebook-file")')
-              next unless href && f && @downloaded_files.include?(f)
-              a.evaluate("this.href = '#{href}'")
+              next unless href && f && downloaded_files.include?(f)
+              a.evaluate("this.href = this.getAttribute('data-mkwebook-href')")
             end
+            File.write(file, page.evaluate('document.querySelector("html").outerHTML'))
           rescue Ferrum::Error => e
             $stderr.puts e.message
             $stderr.puts e.backtrace
