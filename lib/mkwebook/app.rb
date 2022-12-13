@@ -1,4 +1,5 @@
 require 'fileutils'
+require 'sqlite3'
 require 'Mkwebook/config'
 require 'ferrum'
 require 'pry-byebug'
@@ -191,6 +192,105 @@ module Mkwebook
           element.evaluate("this.#{asset_attr} = '#{u}'")
         end
       end
+    end
+
+    def make_docset
+      docset_config = @config[:docset]
+      docset_name = "#{docset_config[:name]}.docset"
+      doc_path = "#{docset_name}/Contents/Resources/Documents"
+      dsidx_path = "#{docset_name}/Contents/Resources/docSet.dsidx"
+      icon_path = "#{docset_name}/icon.png"
+      info = "#{docset_name}/Contents/info.plist"
+
+      if Dir.exist?(docset_name)
+        puts 'Docset directory already exist!'
+      else
+        FileUtils.mkdir_p(doc_path)
+        puts "Create the docset directory!"
+      end
+
+      # Copy files
+      # FileUtils.cp_r(Dir.glob("*") - [docset_name], doc_path)
+      puts 'Copy the HTML documentations!'
+
+      # Init SQLite
+
+      FileUtils.rm_f(dsidx_path)
+      db = SQLite3::Database.new(dsidx_path)
+      db.execute <<-SQL
+      CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT);
+      SQL
+      db.execute <<-SQL
+      CREATE UNIQUE INDEX anchor ON searchIndex (name, type, path);
+      SQL
+      puts 'Create the SQLite Index'
+
+      pages = Dir.glob("#{doc_path}/**/*.html").select do |file|
+        docset_config[:pages].find { |page| file =~ Regexp.new(page[:url_pattern]) }
+      end
+
+      pages = pages[0, @cli_options[:limit]] if @cli_options[:limit]
+
+      prepare_browser
+
+      page = @browser_context.create_page
+
+      elements = pages.flat_map do |file|
+        begin
+          page.go_to("file://#{File.expand_path(file)}")
+          page_config = docset_config[:pages].find { |page| file =~ Regexp.new(page[:url_pattern]) }
+          page.evaluate(page_config[:extractor]) || []
+        rescue => e
+          puts e.message
+          puts e.backtrace
+        end
+      end
+
+      elements.uniq.compact.each do |element|
+        name = element['name']
+        type = element['type']
+        path = element['path'].sub(%r{.*\.docset/Contents/Resources/Documents}, '')
+        db.execute('INSERT OR IGNORE INTO searchIndex(name, type, path) VALUES (?, ?, ?);', [name, type, path])
+      end
+
+      plist_content = <<-PLIST
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+                <key>CFBundleIdentifier</key>
+                <string>#{docset_name.sub(/.docset/, '')}</string>
+                <key>CFBundleName</key>
+                <string>#{docset_name.sub(/.docset/, '')}</string>
+                <key>DashDocSetFamily</key>
+                <string>#{docset_name.sub(/.docset/, '')}</string>
+                <key>DocSetPlatformFamily</key>
+                <string>#{docset_config[:keyword] || docset_name.downcase.sub(/.docset/, '')}</string>
+                <key>isDashDocset</key>
+                <true/>
+                <key>isJavaScriptEnabled</key>
+                <true/>
+                <key>dashIndexFilePath</key>
+                <string>#{docset_config[:index]}</string>
+        </dict>
+        </plist>
+      PLIST
+      File.open(info, 'w') { |f| f.write(plist_content)}
+
+      # Add icon
+      if docset_config[:icon]
+        if docset_config[:icon].end_with?('.png')
+          FileUtils.cp(docset_config[:icon], icon_path)
+          puts 'Create the icon for docset!'
+        else
+          puts '**Error**: icon file should be a valid PNG image!'
+          exit(2)
+        end
+      end
+    end
+
+    def list_entry_types
+      puts IO.read("#{__dir__}/entry_types.txt")
     end
 
     private
