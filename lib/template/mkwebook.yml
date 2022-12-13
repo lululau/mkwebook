@@ -30,6 +30,7 @@ index-page:  # index page settings
     - selector: "script[src]"
       attr: src
 
+max-recursion: 2  # max depth of recursive downloading
 
 pages:  # settings for content pages
   - url-pattern: '.*'  # URL pattern for content page, only pages' URL matching this pattern will be processed
@@ -41,6 +42,7 @@ pages:  # settings for content pages
       style.innerHTML = '.clj-content-container { margin-left: 0; }';
       document.body.appendChild(style);
     selector: html   # CSS selector for the content to be saved
+    page-link-selector: "a:not([href='../guides'])"  # links to be downloaded recursively which are extracted from page content
     assets:  # assets to be downloaded
       - selector: img  # CSS selector for assets
         attr: src  # attribute name for the asset URL

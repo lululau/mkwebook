@@ -16,6 +16,7 @@ module Mkwebook
       end
       @cli_options = cli_options
       @config = Mkwebook::Config.new(@cli_options)
+      @downloaded_depth = 0
     end
 
     def create_config
@@ -28,7 +29,9 @@ module Mkwebook
 
     def download
       download_index
+      append_extra_pages
       download_pages
+      post_process
     end
 
     def prepare_browser
@@ -103,10 +106,11 @@ module Mkwebook
     end
 
     def download_pages
-
-      append_extra_pages
+      return unless @downloaded_depth < @config[:max_recursion]
 
       pool = Concurrent::FixedThreadPool.new(@config[:concurrency])
+
+      @page_links = @page_urls.map { |url| [url, []] }.to_h
 
       @page_urls.each do |url|
         page_config = @config[:pages].find { |page| url =~ Regexp.new(page[:url_pattern]) }
@@ -129,6 +133,13 @@ module Mkwebook
 
             @config[:index_page][:title].try do |title|
               page.execute("document.title = '#{title}'")
+            end
+
+            if page_link_selector = page_config[:page_link_selector]
+              page_links = page_elements.flat_map do |element|
+                element.css(page_link_selector).map { |a| a.evaluate('this.href') }
+              end.uniq
+              @page_links[url] = page_links
             end
 
             page.execute <<-JS
@@ -161,13 +172,14 @@ module Mkwebook
             page.close
           end
         end
-
       end
 
       pool.shutdown
       pool.wait_for_termination
 
-      post_process
+      @page_urls = @page_links.flat_map(&:last).uniq
+      @downloaded_depth += 1
+      download_pages
     end
 
     def post_process

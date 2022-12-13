@@ -22,7 +22,8 @@ module Mkwebook
         'browser' => {
           'headless' => true,
         },
-        'concurrency': 1
+        'concurrency': 1,
+        'max-recursion': 1
       }
       config = YAML.load_file(config_file)
       config = default_config.deep_merge(config).deep_transform_keys! { |k| k.to_s.underscore.to_sym }
