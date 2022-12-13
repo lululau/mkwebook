@@ -166,6 +166,20 @@ module Mkwebook
 
       pool.shutdown
       pool.wait_for_termination
+
+      post_process
+    end
+
+    def post_process
+      @config[:post_process].try do |script|
+        if File.file?(script)
+          system(script)
+        else
+          system('bash', '-c', script)
+        end
+      end
+        end
+      end
     end
 
     def append_extra_pages
