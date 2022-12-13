@@ -17,6 +17,7 @@ module Mkwebook
       @cli_options = cli_options
       @config = Mkwebook::Config.new(@cli_options)
       @downloaded_depth = 0
+      @downloaded_files = []
     end
 
     def create_config
@@ -31,6 +32,7 @@ module Mkwebook
       download_index
       append_extra_pages
       download_pages
+      modify_page_links
       post_process
     end
 
@@ -54,7 +56,7 @@ module Mkwebook
       end
     end
 
-    def download_index
+    def download_index(only_index = false)
       prepare_browser
       index_page = @browser_context.create_page
       index_page.go_to(@config[:index_page][:url])
@@ -70,8 +72,15 @@ module Mkwebook
       @page_urls = index_elements.flat_map do |element|
         url = element.css(@config[:index_page][:link_selector]).map { |a| a.evaluate('this.href') }
         element.css(@config[:index_page][:link_selector]).each do |a|
-          u = a.evaluate('this.href').normalize_uri('.html').relative_path_from(@config[:index_page][:output])
-          a.evaluate("this.href = '#{u}'")
+          u = a.evaluate('this.href')
+          href = u.normalize_uri('.html').relative_path_from(@config[:index_page][:output])
+          file = @config[:index_page][:output]
+          a.evaluate <<~JS
+            (function() {
+              this.setAttribute('data-mkwebook-href', #{href});
+              this.setAttribute('data-mkwebook-file', #{file});
+            })();
+          JS
         end
         url
       end.uniq
@@ -101,6 +110,8 @@ module Mkwebook
       end.join("\n").tap do |html|
         File.write(@config[:index_page][:output], html)
       end
+      @downloaded_files << @config[:index_page][:output]
+      modify_page_links if only_index
     rescue Ferrum::Error => e
       binding.pry
     end
@@ -154,16 +165,22 @@ module Mkwebook
             page_elements.map do |element|
               element.css('a').each do |a|
                 u = a.evaluate('this.href')
-                next unless @page_urls.include?(u)
-
-                u = u.normalize_uri('.html').relative_path_from(url.normalize_uri('.html'))
-                a.evaluate("this.href = '#{u}'")
+                href = u.normalize_uri('.html').relative_path_from(url.normalize_uri('.html'))
+                file = u.normalize_file_path('.html')
+                a.evaluate <<~JS
+                  (function() {
+                      this.setAttribute('data-mkwebook-href', #{href});
+                      this.setAttribute('data-mkwebook-file', #{file});
+                  })();
+                JS
               end
               element.evaluate('this.outerHTML')
             end.join("\n").tap do |html|
               FileUtils.mkdir_p(File.dirname(output))
               File.write(output, html)
             end
+
+            @downloaded_files << output
           rescue Ferrum::Error => e
             $stderr.puts e.message
             $stderr.puts e.backtrace
@@ -315,6 +332,32 @@ module Mkwebook
 
     def list_entry_types
       puts IO.read("#{__dir__}/entry_types.txt")
+    end
+
+    def modify_page_links
+      pool = Concurrent::FixedThreadPool.new(@config[:concurrency])
+      @downloaded_files.each do |file|
+        pool.post do
+          begin
+            page = @browser_context.create_page
+            page.go_to("file://#{File.expand_path(file)}")
+            page.css('a').each do |a|
+              href = a.evaluate('this.getAttribute("data-mkwebook-href")')
+              f = a.evaluate('this.getAttribute("data-mkwebook-file")')
+              next unless href && f && @downloaded_files.include?(f)
+              a.evaluate("this.href = '#{href}'")
+            end
+          rescue Ferrum::Error => e
+            $stderr.puts e.message
+            $stderr.puts e.backtrace
+            binding.pry if @cli_options[:pause_on_error]
+          ensure
+            page.close
+          end
+        end
+      end
+      pool.shutdown
+      pool.wait_for_termination
     end
 
     private

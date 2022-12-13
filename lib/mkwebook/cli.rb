@@ -19,7 +19,7 @@ module Mkwebook
     option :pause, :type => :boolean, :aliases => '-p', :desc => 'Pause after processing index page'
     desc 'download_index', 'Download and process index page'
     def download_index
-      Mkwebook::App.new(options).download_index
+      Mkwebook::App.new(options).download_index(true)
     end
 
     option :limit, :type => :numeric, :aliases => '-l', :desc => 'Limit number of pages, specially for debugging'
