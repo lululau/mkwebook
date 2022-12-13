@@ -48,6 +48,9 @@ pages:  # settings for content pages
         attr: href
       - selector: "script[src]"
         attr: src
+
+extra-pages:  # settings for extra pages
+  - https://www.example.com/extra-page-1
             
 docset:  # config for generate docset
   name: "Clojure Guides"  # docset name
