@@ -222,7 +222,7 @@ module Mkwebook
       end
 
       # Copy files
-      # FileUtils.cp_r(Dir.glob("*") - [docset_name], doc_path)
+      FileUtils.cp_r(Dir.glob("*") - [docset_name], doc_path)
       puts 'Copy the HTML documentations!'
 
       # Init SQLite
