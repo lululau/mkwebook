@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mkwebook (0.1.3)
+    mkwebook (0.1.4)
       activesupport (>= 6.1.5)
       concurrent-ruby
       ferrum (>= 0.13)
