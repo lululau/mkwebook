@@ -27,9 +27,7 @@ module Mkwebook
       config = YAML.load_file(config_file)
       config = default_config.deep_merge(config).deep_transform_keys! { |k| k.to_s.underscore.to_sym }
       config[:concurrency] = 1 if force_single_threaded?
-      @cli_options[:headless].try do |headless|
-        config[:browser][:headless] = headless
-      end
+      config[:browser][:headless] = false if @cli_options[:headmode]
       config
     end
 
