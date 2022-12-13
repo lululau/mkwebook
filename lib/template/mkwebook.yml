@@ -76,10 +76,10 @@ docset:  # config for generate docset, mandatory if run docset command
               name = tag.previousElementSibling.innerText + ' - ' + name;
             }
           }
-          return {  # Should return an array of objects with name, path, type attributes
-            path: link.href,  # path of the page, should be relative to DEMO.docset/Contents/Resources/Documents (starts with /)
-            name: name, # name of extracted element
-            type: 'Guide' # type of extracted element
+          return {  // Should return an array of objects with name, path, type attributes
+            path: link.href,  // path of the page, should be relative to DEMO.docset/Contents/Resources/Documents (starts with /)
+            name: name, // name of extracted element
+            type: 'Guide' // type of extracted element
           };
         });
       })();
