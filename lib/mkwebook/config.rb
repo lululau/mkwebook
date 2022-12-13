@@ -13,7 +13,7 @@ module Mkwebook
         @config = load(@file)
         __setobj__(@config)
       else
-        __setobj__(self)
+        __setobj__({})
       end
     end
 
