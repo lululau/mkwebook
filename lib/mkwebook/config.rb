@@ -33,6 +33,10 @@ module Mkwebook
       config[:concurrency].present?
     end
 
+    def authentication?
+      config.dig(:authentication, :cookies).present? || config.dig(:authentication, :local_storage).present?
+    end
+
     def find_mkwebook_yaml
       dir = Dir.pwd
       while dir != '/'
