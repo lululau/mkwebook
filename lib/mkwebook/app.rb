@@ -15,7 +15,7 @@ module Mkwebook
         Dir.chdir(cli_options[:work_dir])
       end
       @cli_options = cli_options
-      @config = Mkwebook::Config.new(@cli_options[:pause] || @cli_options[:pause_on_error] || @cli_options[:single_thread])
+      @config = Mkwebook::Config.new(@cli_options)
     end
 
     def create_config
@@ -176,8 +176,6 @@ module Mkwebook
           system(script)
         else
           system('bash', '-c', script)
-        end
-      end
         end
       end
     end
