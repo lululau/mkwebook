@@ -51,6 +51,9 @@ pages:  # settings for content pages
 
 extra-pages:  # settings for extra pages
   - https://www.example.com/extra-page-1
+
+post-process: |  # Shell script to be executed after the book is downloaded
+  find . -name '*.html' -exec sed -i 's/https:\/\/clojure.org\/guides\/repl\/introduction/..\/index.html/g' {} \;
             
 docset:  # config for generate docset
   name: "Clojure Guides"  # docset name
