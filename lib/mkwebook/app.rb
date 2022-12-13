@@ -26,9 +26,9 @@ module Mkwebook
       File.join(Mkwebook::GEM_ROOT, 'template', 'mkwebook.yml')
     end
 
-    def down
-      down_index
-      down_pages
+    def download
+      download_index
+      download_pages
     end
 
     def prepare_browser
@@ -51,7 +51,7 @@ module Mkwebook
       end
     end
 
-    def down_index
+    def download_index
       prepare_browser
       index_page = @browser_context.create_page
       index_page.go_to(@config[:index_page][:url])
@@ -102,7 +102,7 @@ module Mkwebook
       binding.pry
     end
 
-    def down_pages
+    def download_pages
 
       append_extra_pages
 
@@ -277,7 +277,7 @@ module Mkwebook
                 <key>DashDocSetFamily</key>
                 <string>#{docset_name.sub(/.docset/, '')}</string>
                 <key>DocSetPlatformFamily</key>
-                <string>#{docset_config[:keyword] || docset_name.downcase.sub(/.docset/, '')}</string>
+                <string>#{docset_config[:keyword] || docset_name.downcaseload.sub(/.docset/, '')}</string>
                 <key>isDashDocset</key>
                 <true/>
                 <key>isJavaScriptEnabled</key>
