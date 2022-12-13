@@ -1,49 +1,49 @@
-browser:  # browser settings
-  headless: false  # headless mode
-  window_size: [1440, 1024] # browser window size
+browser:  # browser settings, this setting is optional
+  headless: false  # headless mode, the -H CLI option could be used to override this setting
+  window_size: [1920, 1200] # browser window size
   timeout: 30 # timeout for waiting for page loading
   # Any options accepted by Ferum::Browser.new are allowed here
 
 concurrency: 16  # number of concurrent threads, default is no conccurency
 
-authentication:  # authentication settings
+authentication:  # authentication settings, this setting is optional
   url: https://example.com/login # any page url which for inject cookie and local storage
   cookies: "auth_cookie_id=demo" # cookie string to be injected
   local-storage:  # local storage to be injected
     username: demo  # key and value
     auth_token: demo  # key and value
 
-index-page:  # index page settings
+index-page:  # index page settings, this setting is mandatory
   url: https://clojure.org/guides/repl/introduction  # URL of index page
   title: Clojure Guides  # title for the book, use page's title if not set
-  modifier: |  # JavaScript code to modify the page
+  modifier: |  # JavaScript code to modify the page, this setting is optional
     document.body.innerHTML = document.querySelector('.clj-section-nav-container').outerHTML;
     document.querySelector('.clj-section-nav-container').style.width = '100%';
     document.body.style.backgroundColor = 'white';
 
-  selector: "html"  # CSS selector for the content to be saved
-  output: "index.html" # output file name
-  link-selector: "a:not([href='../guides'])"  # CSS selector for links of content pages
-  assets:  # assets to be downloaded
+  selector: "html"  # CSS selector for the content to be saved, this setting is mandatory
+  output: "index.html" # output file name, this setting is mandatory
+  link-selector: "a:not([href='../guides'])"  # CSS selector for links of content pages, this setting is mandatory
+  assets:  # assets to be downloaded, this setting is optional
     - selector: "link[rel=stylesheet]" # CSS selector for assets
       attr: href  # attribute name for the asset URL
     - selector: "script[src]"
       attr: src
 
-max-recursion: 2  # max depth of recursive downloading
+max-recursion: 2  # max depth of recursive downloading, default is 1
 
-pages:  # settings for content pages
+pages:  # settings for content pages, this setting is mandatory
   - url-pattern: '.*'  # URL pattern for content page, only pages' URL matching this pattern will be processed
-    modifier: |  # JavaScript code to modify the page
+    modifier: |  # JavaScript code to modify the page, this setting is optional
       document.body.innerHTML = document.querySelector('.clj-content-container').outerHTML;
       document.querySelector('.clj-content-container').style.width = '100%';
       document.body.style.backgroundColor = 'white';
       var style = document.createElement('style');
       style.innerHTML = '.clj-content-container { margin-left: 0; }';
       document.body.appendChild(style);
-    selector: html   # CSS selector for the content to be saved
-    page-link-selector: "a:not([href='../guides'])"  # links to be downloaded recursively which are extracted from page content
-    assets:  # assets to be downloaded
+    selector: html   # CSS selector for the content to be saved, this setting is mandatory
+    page-link-selector: "a:not([href='../guides'])"  # links to be downloaded recursively which are extracted from page content, this setting is optional, if this setting is set, consider also set max-recursion
+    assets:  # assets to be downloaded, this setting is optional
       - selector: img  # CSS selector for assets
         attr: src  # attribute name for the asset URL
       - selector: "link[rel=stylesheet]"
@@ -51,20 +51,20 @@ pages:  # settings for content pages
       - selector: "script[src]"
         attr: src
 
-extra-pages:  # settings for extra pages
+extra-pages:  # settings for extra pages, this setting is optional
   - https://www.example.com/extra-page-1
 
-post-process: |  # Shell script to be executed after the book is downloaded
+post-process: |  # Shell script to be executed after the book is downloaded, this setting is optional
   find . -name '*.html' -exec sed -i 's/https:\/\/clojure.org\/guides\/repl\/introduction/..\/index.html/g' {} \;
             
-docset:  # config for generate docset
-  name: "Clojure Guides"  # docset name
-  keyword: "clojure"  # docset keyword
-  icon: "clojure.png"  # docset icon
-  index: "/index.html"  # docset index page
+docset:  # config for generate docset, mandatory if run docset command
+  name: "Clojure Guides"  # docset name, this setting is mandatory
+  keyword: "clojure"  # docset keyword, this setting is mandatory
+  icon: "clojure.png"  # docset icon, this setting is mandatory
+  index: "/index.html"  # docset index page, this setting is mandatory
   pages:  # docset pages config
   - url-pattern: 'index.html'  # URL pattern for docset page, will match against local downloaded pages
-    extractor: |  # JavaScript code to extract the content for docset page
+    extractor: |  # JavaScript code to extract the content for docset page, this setting is mandatory
       (function() {
         var links = [...document.querySelectorAll('a.data-url')];
         return links.map(link => {
