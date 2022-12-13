@@ -9,7 +9,7 @@ module Mkwebook
     end
 
     class_option :work_dir, :type => :string, :aliases => '-d', :default => '.', :desc => 'Working directory'
-    class_option :headless, :type => :boolean, :aliases => '-h', :default => nil, :desc => "Headless mode, this option will override the config file's headless setting"
+    class_option :headmode, :type => :boolean, :aliases => '-H', :default => nil, :desc => "Headful mode, this option will override the config file's headless setting"
     class_option :pause_on_error, :type => :boolean, :aliases => '-e', :default => false, :desc => 'Pause on error, this option will force concurrency off'
     desc 'init', 'Create config file in current directory'
     def init
