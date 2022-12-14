@@ -33,6 +33,7 @@ module Mkwebook
 
     option :limit, :type => :numeric, :aliases => '-l', :desc => 'Limit number of pages, specially for debugging'
     option :list, :type => :boolean, :aliases => '-L', :desc => 'List all available Dash.app entry types'
+    option :print_entries, :type => :boolean, :aliases => '-p', :desc => 'Print extracted entries'
     desc 'docset', 'Create docset'
     def docset
       if options[:list]

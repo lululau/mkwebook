@@ -152,7 +152,7 @@ module Mkwebook
 
             if page_link_selector = page_config[:page_link_selector]
               page_links = page_elements.flat_map do |element|
-                element.css(page_link_selector).map { |a| a.evaluate('this.href') }
+                element.css(page_link_selector).map { |a| a.evaluate('this.href') rescue nil }.compact
               end.uniq
               @page_links[url] = page_links
             end
@@ -293,11 +293,13 @@ module Mkwebook
       end
 
       elements.uniq.compact.each do |element|
+        puts element if @cli_options[:print_entries]
         name = element['name']
         type = element['type']
         path = element['path'].sub(%r{.*\.docset/Contents/Resources/Documents}, '')
         db.execute('INSERT OR IGNORE INTO searchIndex(name, type, path) VALUES (?, ?, ?);', [name, type, path])
       end
+
 
       plist_content = <<-PLIST
         <?xml version="1.0" encoding="UTF-8"?>
