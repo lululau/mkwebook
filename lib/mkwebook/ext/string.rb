@@ -16,6 +16,8 @@ class String
   def normalize_file_path(force_extname = nil)
     return self unless present?
     uri = URI.parse(self)
+    return unless uri.scheme.in? %w(http https)
+    return unless uri.path.present?
     file_path = uri.path[1..]
     extname = force_extname || File.extname(file_path)
     basename = File.basename(file_path, extname)
@@ -27,6 +29,8 @@ class String
   def normalize_uri(force_extname = nil)
     return self unless present?
     uri = URI.parse(self)
+    return unless uri.scheme.in? %w(http https)
+    return unless uri.path.present?
     file_path = uri.path[1..]
     extname = force_extname || File.extname(file_path)
     basename = File.basename(file_path, extname)

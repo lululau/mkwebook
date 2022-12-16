@@ -170,6 +170,7 @@ module Mkwebook
               element.css('a').each do |a|
                 u = a.evaluate('this.href') rescue nil
                 next unless u.present?
+                next unless u =~ /^https?:\/\//
                 href = u.normalize_uri('.html').relative_path_from(url.normalize_uri('.html'))
                 file = u.normalize_file_path('.html')
                 a.evaluate <<~JS
